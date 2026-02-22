@@ -1,0 +1,2 @@
+const MAX_CHARS=200;document.addEventListener("copy",e=>{let t=window.getSelection();try{if(!t)return;let n=t.toString(),r=window.location.href.split("?")[0],a=`
+Source: Justdial.com – Read more at: ${r}`;if(n.length>200){let o=n.substring(0,200);if(e.clipboardData){let i=o+"..."+a;e.clipboardData.setData("text/plain",i),e.preventDefault()}else console.error("event.clipboardData is undefined. This should not happen in a synchronous copy event.")}}catch(l){console.error("Error during copy event handling:",l)}});
