@@ -583,7 +583,37 @@ img {
 
 @media (max-width: 480px) {
     .ecommerce-products-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .product-card {
+        padding: 0.5rem;
+    }
+
+    .product-badge {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+        top: 4px;
+        left: 4px;
+    }
+
+    .product-title {
+        font-size: 0.85rem;
+    }
+
+    .product-price {
+        font-size: 1rem;
+    }
+
+    .product-stock {
+        font-size: 0.75rem;
+    }
+
+    .product-order-btn {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+        gap: 4px;
     }
 }
 
