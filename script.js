@@ -289,4 +289,222 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ==========================================
+    // Gallery Filter & Lightbox Logic
+    // ==========================================
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+
+    // Filter Logic
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all
+            filterBtns.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked
+            btn.classList.add('active');
+
+            const filterValue = btn.getAttribute('data-filter');
+
+            galleryItems.forEach(item => {
+                if (filterValue === 'all' || item.getAttribute('data-category') === filterValue) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Re-calculate visible items for lightbox navigation
+            updateVisibleItems();
+        });
+    });
+
+    // Lightbox Logic
+    const lightbox = document.getElementById('gallery-lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxPrice = document.getElementById('lightbox-price');
+    const lightboxDesc = document.getElementById('lightbox-desc');
+    const lightboxClose = document.querySelector('.lightbox-close');
+    const lightboxPrev = document.querySelector('.lightbox-prev');
+    const lightboxNext = document.querySelector('.lightbox-next');
+    const lightboxOrderBtn = document.getElementById('lightbox-order-btn');
+    const lightboxWaBtn = document.getElementById('lightbox-wa-btn');
+
+    let visibleItems = Array.from(galleryItems);
+    let currentIndex = 0;
+
+    function updateVisibleItems() {
+        visibleItems = Array.from(galleryItems).filter(item => item.style.display !== 'none');
+    }
+
+    // Initialize visible items
+    updateVisibleItems();
+
+    function openLightbox(index) {
+        if (!lightbox) return;
+        currentIndex = index;
+        const item = visibleItems[currentIndex];
+
+        // Populate data
+        const imgSrc = item.querySelector('img').src;
+        const title = item.getAttribute('data-title');
+        const price = item.getAttribute('data-price');
+        const desc = item.getAttribute('data-desc');
+
+        lightboxImg.src = imgSrc;
+        lightboxTitle.textContent = title;
+        lightboxPrice.textContent = 'Starting at ₹' + price;
+        lightboxDesc.textContent = desc;
+
+        // WhatsApp Link formulation
+        const waMessage = `Hi SS Magic Printers, I am interested in ordering the '${title}' (Starting at ₹${price}). Can you share more details?`;
+        if (lightboxWaBtn) {
+            lightboxWaBtn.href = `https://wa.me/917731879736?text=${encodeURIComponent(waMessage)}`;
+        }
+
+        // Order Now Link (opens the custom order modal)
+        if (lightboxOrderBtn) {
+            lightboxOrderBtn.onclick = () => {
+                closeLightbox();
+                const productSelect = document.getElementById('product');
+                if (productSelect) productSelect.value = title;
+                const orderModal = document.getElementById('order-modal');
+                if (orderModal) orderModal.classList.add('show');
+                document.body.classList.add('no-scroll');
+            };
+        }
+
+        lightbox.classList.remove('hidden');
+        document.body.classList.add('no-scroll');
+    }
+
+    function closeLightbox() {
+        if (!lightbox) return;
+        lightbox.classList.add('hidden');
+        document.body.classList.remove('no-scroll');
+        // Clear src to prevent flash of old image on next open
+        setTimeout(() => lightboxImg.src = '', 300);
+    }
+
+    function showNext() {
+        currentIndex = (currentIndex + 1) % visibleItems.length;
+        openLightbox(currentIndex);
+    }
+
+    function showPrev() {
+        currentIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
+        openLightbox(currentIndex);
+    }
+
+    // Attach click events to gallery items
+    galleryItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const index = visibleItems.indexOf(item);
+            if (index !== -1) {
+                openLightbox(index);
+            }
+        });
+    });
+
+    if (lightbox) {
+        if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+        if (lightboxNext) lightboxNext.addEventListener('click', showNext);
+        if (lightboxPrev) lightboxPrev.addEventListener('click', showPrev);
+
+        // Close on overlay click
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox || e.target.classList.contains('lightbox-content') || e.target.classList.contains('lightbox-image-container')) {
+                closeLightbox();
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (lightbox.classList.contains('hidden')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight') showNext();
+            if (e.key === 'ArrowLeft') showPrev();
+        });
+    }
+
+    // ==========================================
+    // Lead Capture Logic
+    // ==========================================
+    const leadModal = document.getElementById('lead-modal');
+    const leadForm = document.getElementById('lead-capture-form');
+    const leadSubmitBtn = document.getElementById('lead-submit-btn');
+
+    // Display Logic
+    if (leadModal && leadForm) {
+        // Check if user has already submitted the form
+        const hasCapturedLead = localStorage.getItem('leadCaptured');
+
+        if (!hasCapturedLead) {
+            // Show the modal
+            setTimeout(() => {
+                leadModal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }, 1000); // 1-second delay for smoother entry
+        }
+
+        // Handle Submission
+        leadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('lead-name').value.trim();
+            const phone = document.getElementById('lead-phone').value.trim();
+            const email = document.getElementById('lead-email').value.trim();
+
+            if (!name || !phone) return; // Native HTML5 handles required, but safety check
+
+            // Update UI State
+            const originalText = leadSubmitBtn.innerHTML;
+            leadSubmitBtn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Saving...';
+            leadSubmitBtn.disabled = true;
+
+            const now = new Date();
+            const data = {
+                name: name,
+                phone: "+91" + phone,
+                email: email || "Not Provided",
+                date: now.toLocaleDateString(),
+                time: now.toLocaleTimeString(),
+                source: 'Website Entry Form'
+            };
+
+            // GOOGLE APPS SCRIPT WEB APP URL
+            // Replace this with the URL after deploying the Google Sheet Script!
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5Y_oIoec0Q5fBDKUbv_QXa6LN_BMzhvc1UmMywrwTnNmQtWDSo6u0igMuftcDdg13/exec';
+
+            try {
+                // We do a fire-and-forget or await depending on preference.
+                // Using no-cors mode since Google Apps Script redirects.
+                if (SCRIPT_URL) {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    console.warn("Please add your Google Apps Script URL to script.js to save data.");
+                }
+            } catch (error) {
+                console.error("Error saving lead:", error);
+                // We still let them in even if it fails to avoid blocking the user experience.
+            }
+
+            // Save flag and close modal
+            localStorage.setItem('leadCaptured', 'true');
+            leadModal.classList.remove('show');
+            document.body.style.overflow = '';
+
+            // Restore button just in case
+            leadSubmitBtn.innerHTML = originalText;
+            leadSubmitBtn.disabled = false;
+        });
+    }
+
 });
