@@ -152,6 +152,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (notes.trim() !== '') {
                 waMessage += `\nSpecial Instructions: ${notes}`;
             }
+
+            const orderImageInput = document.getElementById('order-image');
+            if (orderImageInput && orderImageInput.files && orderImageInput.files.length > 0) {
+                waMessage += `\nAttached Image: ${orderImageInput.files[0].name} (I will send this image in the chat)`;
+            }
+
             waMessage += `\n\nPlease share payment and delivery details.`;
 
             // Redirect to WhatsApp
@@ -425,6 +431,157 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'ArrowRight') showNext();
             if (e.key === 'ArrowLeft') showPrev();
         });
+    }
+
+    // ==========================================
+    // Amazon-Style Product Modal Logic
+    // ==========================================
+    const amazonModal = document.getElementById('amazon-product-modal');
+    const amazonModalClose = document.getElementById('amazon-modal-close');
+    const amazonModalImg = document.getElementById('amazon-modal-img');
+    const amazonModalTitle = document.getElementById('amazon-modal-title');
+    const amazonModalPrice = document.getElementById('amazon-modal-price');
+    const amazonModalOrderBtn = document.getElementById('amazon-modal-order-btn');
+    const amazonModalWaBtn = document.getElementById('amazon-modal-wa-btn');
+
+    if (amazonModal) {
+        // Use generic selector to work across different sections
+        const productCards = document.querySelectorAll('.ecommerce-products-grid .product-card');
+        
+        productCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                const img = card.querySelector('.product-img');
+                const title = card.querySelector('.product-title');
+                const priceElem = card.querySelector('.product-price');
+                const waLink = card.querySelector('.product-order-btn');
+                
+                if (img) amazonModalImg.src = img.src;
+                if (title) {
+                    amazonModalTitle.textContent = title.textContent;
+                    if (typeof loadReviews === 'function') loadReviews(title.textContent);
+                }
+                if (priceElem) {
+                    // product-price usually contains "₹599", remove ₹ for the Amazon price display
+                    amazonModalPrice.textContent = priceElem.textContent.replace('₹', '');
+                }
+                
+                if (waLink) {
+                    amazonModalWaBtn.href = waLink.href;
+                }
+                
+                if (amazonModalOrderBtn && title) {
+                    amazonModalOrderBtn.onclick = () => {
+                        amazonModal.classList.remove('show');
+                        document.body.style.overflow = '';
+                        // Wait for transition before opening the main order modal
+                        setTimeout(() => openOrderModal(title.textContent), 300);
+                    };
+                }
+
+                amazonModal.classList.remove('hidden');
+                // Slight delay for CSS opacity transition to trigger
+                setTimeout(() => {
+                    amazonModal.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                }, 10);
+            });
+        });
+
+        // Close logic
+        function closeAmazonModal() {
+            amazonModal.classList.remove('show');
+            document.body.style.overflow = '';
+            setTimeout(() => {
+                amazonModal.classList.add('hidden');
+            }, 300);
+        }
+
+        if (amazonModalClose) {
+            amazonModalClose.addEventListener('click', closeAmazonModal);
+        }
+
+        amazonModal.addEventListener('click', (e) => {
+            if (e.target === amazonModal || e.target.classList.contains('amazon-modal-img-container')) {
+                closeAmazonModal();
+            }
+        });
+
+        // Reviews Logic
+        const defaultReviews = {
+            "Love Collage Frame": [
+                {name: "Ramesh Reddy", rating: 5, text: "Beautiful design and great quality!"},
+                {name: "Sneha", rating: 4, text: "Loved it, my partner was very happy."}
+            ],
+            "Photo Calendars": [
+                {name: "Venkatesh", rating: 5, text: "Excellent print quality for the entire year."},
+            ]
+        };
+
+        const reviewsListContainer = document.getElementById('product-reviews-list');
+        const addReviewForm = document.getElementById('add-review-form');
+
+        function getReviews(productName) {
+            const raw = localStorage.getItem('reviews_' + productName);
+            if (raw) return JSON.parse(raw);
+            return defaultReviews[productName] || [
+                {name: "Customer", rating: 5, text: "Excellent product, highly recommended!"}
+            ];
+        }
+
+        function renderStars(rating) {
+            let stars = '';
+            for(let i=1; i<=5; i++) {
+                if(i <= rating) stars += '<i class="ph-fill ph-star" style="color: #FFA41C;"></i>';
+                else stars += '<i class="ph-fill ph-star" style="color: #e5e7eb;"></i>';
+            }
+            return stars;
+        }
+
+        // Make loadReviews accessible inside the outer scope of the modal block
+        window.loadReviews = function(productName) {
+            if(!reviewsListContainer) return;
+            const reviews = getReviews(productName);
+            reviewsListContainer.innerHTML = '';
+            
+            if (reviews.length === 0) {
+                reviewsListContainer.innerHTML = '<p style="color: var(--clr-text-light); font-size: 0.95rem;">No reviews yet. Be the first to review!</p>';
+                return;
+            }
+
+            reviews.forEach(r => {
+                reviewsListContainer.innerHTML += `
+                    <div class="review-item" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <div style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--clr-text); font-weight: 600; font-size: 0.9rem;">
+                                ${r.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span style="font-weight: 600; color: var(--clr-blue); font-size: 0.95rem;">${r.name}</span>
+                        </div>
+                        <div style="display: flex; gap: 2px; font-size: 0.9rem; margin-bottom: 6px;">
+                            ${renderStars(r.rating)}
+                        </div>
+                        <p style="color: var(--clr-text-light); font-size: 0.95rem; line-height: 1.4; margin: 0;">${r.text}</p>
+                    </div>
+                `;
+            });
+        };
+
+        if(addReviewForm) {
+            addReviewForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const productName = amazonModalTitle.textContent;
+                const name = document.getElementById('review-name').value;
+                const rating = parseInt(document.getElementById('review-rating').value);
+                const text = document.getElementById('review-text').value;
+
+                let reviews = getReviews(productName);
+                reviews.unshift({name, rating, text});
+                localStorage.setItem('reviews_' + productName, JSON.stringify(reviews));
+
+                addReviewForm.reset();
+                window.loadReviews(productName);
+            });
+        }
     }
 
     // ==========================================

@@ -626,6 +626,7 @@ img {
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
+    cursor: pointer;
 }
 
 .product-card:hover {
@@ -684,7 +685,7 @@ img {
 }
 
 .product-price-row {
-    display: flex;
+    display: none;
     align-items: baseline;
     gap: 8px;
     margin-bottom: 1rem;
@@ -704,12 +705,12 @@ img {
 }
 
 .product-order-btn {
+    display: none;
     width: 100%;
     padding: 0.75rem;
     border-radius: 6px;
     background: #fb923c;
     color: white;
-    display: flex;
     justify-content: center;
     gap: 8px;
     font-size: 0.95rem;
